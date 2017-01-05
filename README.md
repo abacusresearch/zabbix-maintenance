@@ -22,6 +22,7 @@ server = "zabbix.example.com"
 python zabbix_maintenance.py <start|stop> [hours] [fqdn] 
 ```
 If no time value specified, the default is used (1 hour)
+
 If no fqdn specified, the local host name is used
 
 ### Add a maintenance period

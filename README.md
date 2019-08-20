@@ -8,14 +8,21 @@ forked from http://www.devops-share.com/put-host-in-zabbix-maintenance-with-pyth
 2. [Config](#config)
 3. [Usage](#usage)
 
+## Setup
+
+Install the python-yaml package
+```
+apt-get install python-yaml
+```
+
 ## Config
 
-Replace username, password and server in the script.
+Replace username, password and server in the config file /etc/zabbix/zabbix_maintenance.yml.
 
 ```
-user = "username"
-password = "password"
-server = "zabbix.example.com"
+user: "username"
+password: "password"
+server: "zabbix.example.com"
 ```
 
 ## Usage

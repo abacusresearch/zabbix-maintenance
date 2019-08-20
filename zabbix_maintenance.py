@@ -6,10 +6,14 @@ import time
 import json
 import sys
 import socket
+import yaml
 
-user = "username"
-password = "password"
-server = "zabbix.example.com"
+with open("/etc/zabbix/zabbix_maintenance.yml", 'r') as ymlfile:
+    config = yaml.load(ymlfile)
+
+user = config['user']
+password = config['password']
+server = config['server']
 api = "https://" + server + "/api_jsonrpc.php"
 
 def get_token():

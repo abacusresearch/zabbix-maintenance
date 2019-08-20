@@ -1,0 +1,5 @@
+# zabbix_maintenance.yml 
+
+user: 'username'
+password: 'password'
+server: 'zabbix.example.com'

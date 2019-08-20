@@ -7,3 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 1.0.0 - 2017-01-05
 ### Added
  - "first release of the tool"
+
+## 1.1.1 - 2019-08-20
+### Added
+ - "config file for settings"

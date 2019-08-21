@@ -66,11 +66,11 @@ def get_maintenance_id():
             maintid = response.read().split('maintenanceid')[1].split(',')[0].split('"')[2]
             return int(maintid)
         except:
-            print "No maintenance for host: " + hostname
+            print("No maintenance for host: " + hostname)
 
 
 def del_maintenance(mid):
-    print "Found maintenance for host: " + hostname + " maintenance id: " + str(mid)
+    print("Found maintenance for host: " + hostname + " maintenance id: " + str(mid))
     token = get_token()
     data = {"jsonrpc": "2.0", "method": "maintenance.delete", "params": [mid], "auth": token, "id": 1}
     req = urllib2.Request(api)
@@ -82,7 +82,7 @@ def del_maintenance(mid):
         print("Error: " + str(ue))
         sys.exit(1)
     else:
-        print "Removed existing maintenance"
+        print("Removed existing maintenance")
 
 
 def start_maintenance():
@@ -104,7 +104,7 @@ def start_maintenance():
         print("Error: " + str(ue))
         sys.exit(1)
     else:
-        print "Added a " + str(period / int('3600')) + " hours maintenance on host: " + hostname
+        print("Added a " + str(period / int('3600')) + " hours maintenance on host: " + hostname)
         sys.exit(0)
 
 hostname = socket.getfqdn()
@@ -129,8 +129,8 @@ if len(sys.argv) > 1:
         if maint is True:
             del_maintenance(maintids)
     else:
-        print "Error: did not receive action argument start or stop"
+        print("Error: did not receive action argument start or stop")
         sys.exit(1)
 else:
-    print sys.argv[0] + " <start|stop> [hours] [fqdn]"
+    print(sys.argv[0] + " <start|stop> [hours] [fqdn]")
     sys.exit(1)

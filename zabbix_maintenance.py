@@ -9,7 +9,7 @@ import socket
 import yaml
 
 with open("/etc/zabbix/zabbix_maintenance.yml", 'r') as ymlfile:
-    config = yaml.load(ymlfile)
+    config = yaml.load(ymlfile, yaml.SafeLoader)
 
 user = config['user']
 password = config['password']

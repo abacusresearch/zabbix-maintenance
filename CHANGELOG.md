@@ -11,3 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 1.1.1 - 2019-08-20
 ### Added
  - "config file for settings"
+
+## 1.2.0 - 2019-10-02
+### Changed
+ - "lint code and add safeloader"
+
+## 1.3.0 - 2019-10-30
+### Added
+ - "hostname config parameter and added error handling"

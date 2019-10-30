@@ -34,8 +34,12 @@ def get_token():
         print("Error: " + str(ue))
         sys.exit(1)
     else:
-        authtoken = str(response.read().split(',')[1].split(':')[1].strip('"'))
-        return authtoken
+        body = json.loads(response.read())
+        if not body['result']:
+            print("can't get authtoken")
+            sys.exit(1)
+        else:
+            return body['result']
 
 
 def get_host_id():
@@ -52,10 +56,10 @@ def get_host_id():
     else:
         body = json.loads(response.read())
         if not body['result']:
-            print("Host not found on " + str(server))
+            print("Host " + hostname + " not found on " + server)
             sys.exit(1)
-        host = response.read().split("hostid")[1].split(',')[0].split(':')[1].strip('"')
-        return host
+        else:
+            return body['result'][0]['hostid']
 
 
 def get_maintenance_id():
@@ -72,11 +76,11 @@ def get_maintenance_id():
     except urllib2.HTTPError as ue:
         print("Error: " + str(ue))
     else:
-        try:
-            maintid = response.read().split('maintenanceid')[1].split(',')[0].split('"')[2]
-            return int(maintid)
-        except:
+        body = json.loads(response.read())
+        if not body['result']:
             print("No maintenance for host: " + hostname)
+        else:
+            return int(body['result'][0]['maintenanceid'])
 
 
 def del_maintenance(mid):

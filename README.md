@@ -24,6 +24,11 @@ user: "username"
 password: "password"
 server: "zabbix.example.com"
 ```
+Optional
+```
+hostname: "<fqdn>"
+```
+
 
 ## Usage
 

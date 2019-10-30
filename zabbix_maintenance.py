@@ -1,14 +1,20 @@
 #!/usr/bin/python
 
 from datetime import datetime, timedelta
-import urllib2
-import time
 import json
-import sys
+import platform
 import socket
+import sys
+import time
+import urllib2
 import yaml
 
-with open("/etc/zabbix/zabbix_maintenance.yml", 'r') as ymlfile:
+if platform.system() == "Windows":
+    configfile = "C:\ProgramData\zabbix\zabbix_maintenance.yml"
+else:
+    configfile = "/etc/zabbix/zabbix_maintenance.yml"
+
+with open(configfile, 'r') as ymlfile:
     config = yaml.load(ymlfile, yaml.SafeLoader)
 
 user = config['user']
@@ -44,6 +50,10 @@ def get_host_id():
     except urllib2.HTTPError as ue:
         print("Error: " + str(ue))
     else:
+        body = json.loads(response.read())
+        if not body['result']:
+            print("Host not found on " + str(server))
+            sys.exit(1)
         host = response.read().split("hostid")[1].split(',')[0].split(':')[1].strip('"')
         return host
 
@@ -107,7 +117,11 @@ def start_maintenance():
         print("Added a " + str(period / int('3600')) + " hours maintenance on host: " + hostname)
         sys.exit(0)
 
-hostname = socket.getfqdn()
+if 'hostname' in config:
+    hostname = config['hostname']
+else:
+    hostname = socket.getfqdn()
+
 if sys.argv[3:]:
     hostname = sys.argv[3]
 

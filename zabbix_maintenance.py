@@ -42,7 +42,7 @@ def get_token():
             return body['result']
 
 
-def get_host_id():
+def get_host_id(check=False):
     token = get_token()
     data = {"jsonrpc": "2.0", "method": "host.get", "params": {"output": "extend", "filter":
            {"host": [hostname]}}, "auth": token, "id": 0}
@@ -56,8 +56,11 @@ def get_host_id():
     else:
         body = json.loads(response.read())
         if not body['result']:
-            print("Host " + hostname + " not found on " + server)
-            sys.exit(1)
+            if check:
+                return False
+            else:
+                print("Host " + hostname + " not found on " + server)
+                sys.exit(1)
         else:
             return body['result'][0]['hostid']
 
@@ -121,6 +124,16 @@ def start_maintenance():
         print("Added a " + str(period / int('3600')) + " hours maintenance on host: " + hostname)
         sys.exit(0)
 
+
+def check_host_id():
+    if get_host_id(True):
+        print("Host " + hostname + " found on " + server)
+        sys.exit(0)
+    else:
+        print("Host " + hostname + " not found on " + server)
+        sys.exit(1)
+
+
 if 'hostname' in config:
     hostname = config['hostname']
 else:
@@ -146,9 +159,11 @@ if len(sys.argv) > 1:
         maint = isinstance(maintids, int)
         if maint is True:
             del_maintenance(maintids)
+    elif sys.argv[1] == "check":
+        check_host_id()
     else:
-        print("Error: did not receive action argument start or stop")
+        print("Error: did not receive action argument start, stop or check")
         sys.exit(1)
 else:
-    print(sys.argv[0] + " <start|stop> [hours] [fqdn]")
+    print(sys.argv[0] + " <start|stop|check> [hours] [fqdn]")
     sys.exit(1)

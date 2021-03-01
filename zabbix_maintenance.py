@@ -8,11 +8,16 @@ import sys
 import time
 import urllib2
 import yaml
+import os.path
 
 if platform.system() == "Windows":
-    configfile = "C:\ProgramData\zabbix\zabbix_maintenance.yml"
+    path = 'C:\ProgramData\zabbix\zabbix_maintenance.yml'
 else:
-    configfile = "/etc/zabbix/zabbix_maintenance.yml"
+    path = '/etc/zabbix/zabbix_maintenance.yml'
+if os.path.isfile(path) == True:
+    configfile = path
+else:
+    configfile = 'zabbix_maintenance.yml'
 
 with open(configfile, 'r') as ymlfile:
     config = yaml.load(ymlfile, yaml.SafeLoader)
@@ -66,6 +71,7 @@ def get_host_id(check=False):
 
 
 def get_maintenance_id():
+    global maintenance
     hostid = get_host_id()
     token = get_token()
     data = {"jsonrpc": "2.0", "method": "maintenance.get", "params": {"output": "extend", "selectGroups": "extend",
@@ -83,6 +89,7 @@ def get_maintenance_id():
         if not body['result']:
             print("No maintenance for host: " + hostname)
         else:
+            maintenance = body['result'][0]
             return int(body['result'][0]['maintenanceid'])
 
 
@@ -107,6 +114,12 @@ def start_maintenance():
     maint = isinstance(maintids, int)
     if maint is True:
         del_maintenance(maintids)
+        extend_mnt = {"timeperiod_type": 0, "period": period}
+        maintenance['timeperiods'].append(extend_mnt)
+        if until < int(maintenance['active_till']):
+            update_maintenance(maintenance['timeperiods'],int(maintenance['active_till']),"Added")
+        else:
+            update_maintenance(maintenance['timeperiods'],until,"Added")
     hostid = get_host_id()
     token = get_token()
     data = {"jsonrpc": "2.0", "method": "maintenance.create", "params":
@@ -123,6 +136,42 @@ def start_maintenance():
     else:
         print("Added a " + str(period / int('3600')) + " hours maintenance on host: " + hostname)
         sys.exit(0)
+
+
+def update_maintenance(mnt,act_t,task):
+    hostid = get_host_id()
+    token = get_token()
+    data = {"jsonrpc": "2.0", "method": "maintenance.create", "params":
+        {"name": "maintenance_" + hostname, "active_since": int(maintenance['active_since']), "active_till": act_t, "hostids": [hostid], "timeperiods": mnt}, "auth": token, "id": 1}
+    req = urllib2.Request(api)
+    data_json = json.dumps(data)
+    req.add_header('content-type', 'application/json-rpc')
+    try:
+        response = urllib2.urlopen(req, data_json)
+    except urllib2.HTTPError as ue:
+        print("Error: " + str(ue))
+        sys.exit(1)
+    else:
+        print(task + " period on host: " + hostname)
+        sys.exit(0)
+
+
+def stop_maintenance():
+    maintids = get_maintenance_id()
+    maint = isinstance(maintids, int)
+    if maint is True:
+        if len(maintenance['timeperiods']) > 1:
+            min_period = 86400
+            period_position = 0
+            for item in range(len(maintenance['timeperiods'])):
+                if min_period > int(maintenance['timeperiods'][item]['period']):
+                    min_period = int(maintenance['timeperiods'][item]['period'])
+                    period_position = item
+            del maintenance['timeperiods'][period_position]
+            del_maintenance(maintids)
+            update_maintenance(maintenance['timeperiods'],int(maintenance['active_till']),"Removed")
+        else:
+            del_maintenance(maintids)
 
 
 def check_host_id():
@@ -144,8 +193,11 @@ if sys.argv[3:]:
 
 period = int('3600')
 if sys.argv[2:]:
-    period = int(sys.argv[2]) * int('3600')
-
+    if int(sys.argv[2]) < 148159:
+        period = int(sys.argv[2]) * int('3600')
+    else:
+        print("Error: maximum size of a period is 148159 hours")
+        sys.exit(1)
 now = int(time.time())
 x = datetime.now() + timedelta(seconds=int(period))
 float = str(time.mktime(x.timetuple()))
@@ -155,10 +207,7 @@ if len(sys.argv) > 1:
     if sys.argv[1] == "start":
         start_maintenance()
     elif sys.argv[1] == "stop":
-        maintids = get_maintenance_id()
-        maint = isinstance(maintids, int)
-        if maint is True:
-            del_maintenance(maintids)
+        stop_maintenance()
     elif sys.argv[1] == "check":
         check_host_id()
     else:

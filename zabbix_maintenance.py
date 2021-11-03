@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from datetime import datetime, timedelta
 import json
@@ -6,7 +6,7 @@ import platform
 import socket
 import sys
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import yaml
 import os.path
 
@@ -30,13 +30,14 @@ api = "https://" + server + "/api_jsonrpc.php"
 def get_token():
     data = {'jsonrpc': '2.0', 'method': 'user.login', 'params': {'user': user, 'password': password},
             'id': '0'}
-    req = urllib2.Request(api)
+    req = urllib.request.Request(api)
     data_json = json.dumps(data)
+    data_json = data_json.encode('utf-8')
     req.add_header('content-type', 'application/json-rpc')
     try:
-        response = urllib2.urlopen(req, data_json)
-    except urllib2.HTTPError as ue:
-        print("Error: " + str(ue))
+        response = urllib.request.urlopen(req, data_json)
+    except urllib.error.HTTPError as ue:
+        print(("Error: " + str(ue)))
         sys.exit(1)
     else:
         body = json.loads(response.read())
@@ -51,20 +52,21 @@ def get_host_id(check=False):
     token = get_token()
     data = {"jsonrpc": "2.0", "method": "host.get", "params": {"output": "extend", "filter":
            {"host": [hostname]}}, "auth": token, "id": 0}
-    req = urllib2.Request(api)
+    req = urllib.request.Request(api)
     data_json = json.dumps(data)
+    data_json = data_json.encode('utf-8')
     req.add_header('content-type', 'application/json-rpc')
     try:
-        response = urllib2.urlopen(req, data_json)
-    except urllib2.HTTPError as ue:
-        print("Error: " + str(ue))
+        response = urllib.request.urlopen(req, data_json)
+    except urllib.error.HTTPError as ue:
+        print(("Error: " + str(ue)))
     else:
         body = json.loads(response.read())
         if not body['result']:
             if check:
                 return False
             else:
-                print("Host " + hostname + " not found on " + server)
+                print(("Host " + hostname + " not found on " + server))
                 sys.exit(1)
         else:
             return body['result'][0]['hostid']
@@ -77,33 +79,35 @@ def get_maintenance_id():
     data = {"jsonrpc": "2.0", "method": "maintenance.get", "params": {"output": "extend", "selectGroups": "extend",
                                                                       "selectTimeperiods": "extend", "hostids": hostid},
             "auth": token, "id": 0}
-    req = urllib2.Request(api)
+    req = urllib.request.Request(api)
     data_json = json.dumps(data)
+    data_json = data_json.encode('utf-8')
     req.add_header('content-type', 'application/json-rpc')
     try:
-        response = urllib2.urlopen(req, data_json)
-    except urllib2.HTTPError as ue:
-        print("Error: " + str(ue))
+        response = urllib.request.urlopen(req, data_json)
+    except urllib.error.HTTPError as ue:
+        print(("Error: " + str(ue)))
     else:
         body = json.loads(response.read())
         if not body['result']:
-            print("No maintenance for host: " + hostname)
+            print(("No maintenance for host: " + hostname))
         else:
             maintenance = body['result'][0]
             return int(body['result'][0]['maintenanceid'])
 
 
 def del_maintenance(mid):
-    print("Found maintenance for host: " + hostname + " maintenance id: " + str(mid))
+    print(("Found maintenance for host: " + hostname + " maintenance id: " + str(mid)))
     token = get_token()
     data = {"jsonrpc": "2.0", "method": "maintenance.delete", "params": [mid], "auth": token, "id": 1}
-    req = urllib2.Request(api)
+    req = urllib.request.Request(api)
     data_json = json.dumps(data)
+    data_json = data_json.encode('utf-8')
     req.add_header('content-type', 'application/json-rpc')
     try:
-        response = urllib2.urlopen(req, data_json)
-    except urllib2.HTTPError as ue:
-        print("Error: " + str(ue))
+        response = urllib.request.urlopen(req, data_json)
+    except urllib.error.HTTPError as ue:
+        print(("Error: " + str(ue)))
         sys.exit(1)
     else:
         print("Removed existing maintenance")
@@ -125,16 +129,17 @@ def start_maintenance():
     data = {"jsonrpc": "2.0", "method": "maintenance.create", "params":
         {"name": "maintenance_" + hostname, "active_since": now, "active_till": until, "hostids": [hostid], "timeperiods":
         [{"timeperiod_type": 0, "period": period}]}, "auth": token, "id": 1}
-    req = urllib2.Request(api)
+    req = urllib.request.Request(api)
     data_json = json.dumps(data)
+    data_json = data_json.encode('utf-8')
     req.add_header('content-type', 'application/json-rpc')
     try:
-        response = urllib2.urlopen(req, data_json)
-    except urllib2.HTTPError as ue:
-        print("Error: " + str(ue))
+        response = urllib.request.urlopen(req, data_json)
+    except urllib.error.HTTPError as ue:
+        print(("Error: " + str(ue)))
         sys.exit(1)
     else:
-        print("Added a " + str(period / int('3600')) + " hours maintenance on host: " + hostname)
+        print(("Added a " + str(period / int('3600')) + " hours maintenance on host: " + hostname))
         sys.exit(0)
 
 
@@ -143,16 +148,17 @@ def update_maintenance(mnt,act_t,task):
     token = get_token()
     data = {"jsonrpc": "2.0", "method": "maintenance.create", "params":
         {"name": "maintenance_" + hostname, "active_since": int(maintenance['active_since']), "active_till": act_t, "hostids": [hostid], "timeperiods": mnt}, "auth": token, "id": 1}
-    req = urllib2.Request(api)
+    req = urllib.request.Request(api)
     data_json = json.dumps(data)
+    data_json = data_json.encode('utf-8')
     req.add_header('content-type', 'application/json-rpc')
     try:
-        response = urllib2.urlopen(req, data_json)
-    except urllib2.HTTPError as ue:
-        print("Error: " + str(ue))
+        response = urllib.request.urlopen(req, data_json)
+    except urllib.error.HTTPError as ue:
+        print(("Error: " + str(ue)))
         sys.exit(1)
     else:
-        print(task + " period on host: " + hostname)
+        print((task + " period on host: " + hostname))
         sys.exit(0)
 
 
@@ -176,10 +182,10 @@ def stop_maintenance():
 
 def check_host_id():
     if get_host_id(True):
-        print("Host " + hostname + " found on " + server)
+        print(("Host " + hostname + " found on " + server))
         sys.exit(0)
     else:
-        print("Host " + hostname + " not found on " + server)
+        print(("Host " + hostname + " not found on " + server))
         sys.exit(1)
 
 
@@ -214,5 +220,5 @@ if len(sys.argv) > 1:
         print("Error: did not receive action argument start, stop or check")
         sys.exit(1)
 else:
-    print(sys.argv[0] + " <start|stop|check> [hours] [fqdn]")
+    print((sys.argv[0] + " <start|stop|check> [hours] [fqdn]"))
     sys.exit(1)

@@ -7,283 +7,285 @@ Set maintenance for host
 import os
 import sys
 import time
-import json
 import socket
 import platform
-import urllib.request
-import urllib.error
 from datetime import datetime, timedelta
 import yaml
+import requests
+import argparse
 
+
+# --- argument parser ---
+parser = argparse.ArgumentParser(description='Tool to start,' \
+'stop or check maintenance for a specific host on zabbix')
+parser.add_argument('action', choices=['start', 'stop', 'check'], help='Action to perform')
+parser.add_argument('--time-period', nargs='?', type=int, default=None, help='' \
+'Number of hours for maintenance (only for start/stop). Maximum is 148159 hours.')
+parser.add_argument('--target-host', nargs='?', type=str, default=None, help='' \
+'Target host to set or check maintenance')
+parser.add_argument('--config-file', nargs='?', type=str, default=None, help='' \
+r'Path of the config file (default of Windows "C:\ProgramData\zabbix\zabbix_maintenance.yml"' \
+', on Linux "/etc/zabbix/zabbix_maintenance.yml")')
+args = parser.parse_args()
+
+
+# --- variables ---
 # determine config file path
-if platform.system() == "Windows":
+if args.config_file is not None:
+    CONFIG_PATH = args.config_file
+elif platform.system() == 'Windows':
     CONFIG_PATH = r"C:\ProgramData\zabbix\zabbix_maintenance.yml"
+elif platform.system() == 'Linux':
+    CONFIG_PATH = "/etc/zabbix/zabbix_maintenance.yml"
 else:
     CONFIG_PATH = "/etc/zabbix/zabbix_maintenance.yml"
 
+# check if the file exists on 'CONFIG_PATH'
 if os.path.isfile(CONFIG_PATH):
-    CONFIGFILE = CONFIG_PATH
+    CONFIG_FILE = CONFIG_PATH
 else:
-    CONFIGFILE = "zabbix_maintenance.yml"
+    # use the file in current directory
+    CONFIG_FILE = "zabbix_maintenance.yml"
 
 # load YAML
-with open(CONFIGFILE, "r", encoding="utf-8") as ymlfile:
+with open(CONFIG_FILE, "r", encoding="utf-8") as ymlfile:
     config = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
+# get hostname from 'CONFIG_FILE'
+if "hostname" in config:
+    hostname = config["hostname"]
+elif args.target_host is not None:
+    hostname = args.target_host
+else:
+    hostname = socket.getfqdn()
+
+# need PERIOD in seconds for zabbix
+PERIOD = 3600
+if args.time_period is not None:
+    HOURS_ARG = args.time_period
+else:
+    HOURS_ARG = 1
+
+# max hours is 148159
+if HOURS_ARG < 148159:
+    PERIOD = HOURS_ARG * 3600
+else:
+    print("Error: maximum size of a period is 148159 hours")
+    sys.exit(1)
+
+# set variables from CONFIG_FILE
 user = config["user"]
 password = config["password"]
 server = config["server"]
 API_URL = f"https://{server}/api_jsonrpc.php"
-
-
-def get_token():
-    """Get token from user"""
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "user.login",
-        "params": {"username": user, "password": password},
-        "id": "0",
-    }
-    req = urllib.request.Request(
-        API_URL, headers={"Content-Type": "application/json-rpc"}
-    )
-    data = json.dumps(payload).encode("utf-8")
-
-    try:
-        with urllib.request.urlopen(req, data) as response:
-            body = json.load(response)
-            token = body.get("result")
-            if not token:
-                print("Can't get auth token")
-                sys.exit(1)
-            return token
-        # response = urllib.request.urlopen(req, data)
-    except urllib.error.HTTPError as e:
-        print("Error:", e)
-        sys.exit(1)
-
-
-def get_host_id(check=False):
-    """get hostid to create new maintenance object"""
-    token = get_token()
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "host.get",
-        "params": {
-            "output": "extend",
-            "filter": {"host": [hostname]},
-        },
-        "auth": token,
-        "id": 0,
-    }
-    req = urllib.request.Request(
-        API_URL, headers={"Content-Type": "application/json-rpc"}
-    )
-    data = json.dumps(payload).encode("utf-8")
-
-    try:
-        # response = urllib.request.urlopen(req, data)
-        with urllib.request.urlopen(req, data) as response:
-            body = json.load(response)
-            result = body.get("result", [])
-            if not result:
-                if check:
-                    return False
-                print(f"Host {hostname} not found on {server}")
-                sys.exit(1)
-    except urllib.error.HTTPError as e:
-        print("Error:", e)
-        if check:
-            return False
-        sys.exit(1)
-    return result[0]["hostid"]
-
-
-def get_maintenance_id(name):
-    """check for existing maintenance object in zabbix"""
-    hostid = get_host_id()
-    token = get_token()
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "maintenance.get",
-        "params": {
-            "output": "extend",
-            "selectGroups": "extend",
-            "selectTimeperiods": "extend",
-            "hostids": hostid,
-            "search": {
-                "name": name
-            },
-            "startSearch": "true"
-        },
-        "auth": token,
-        "id": 0,
-    }
-    req = urllib.request.Request(
-        API_URL, headers={"Content-Type": "application/json-rpc"}
-    )
-    data = json.dumps(payload).encode("utf-8")
-
-    try:
-        with urllib.request.urlopen(req, data) as response:
-            body = json.load(response)
-            result = body.get("result", [])
-            if not result:
-                print(f"No maintenance for host: {hostname}")
-                return None
-            maintenance = result[0]
-            return int(maintenance["maintenanceid"])
-    except urllib.error.HTTPError as e:
-        print("Error:", e)
-        return None
-
-
-def del_maintenance(mid):
-    """delete whole maintenance object"""
-    print(f"Found maintenance for host: {hostname}, maintenance id: {mid}")
-    token = get_token()
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "maintenance.delete",
-        "params": [mid],
-        "auth": token,
-        "id": 1,
-    }
-    req = urllib.request.Request(
-        API_URL, headers={"Content-Type": "application/json-rpc"}
-    )
-    data = json.dumps(payload).encode("utf-8")
-
-    try:
-        with urllib.request.urlopen(req, data) as response:
-            body = json.load(response)
-            result = body.get("result", [])
-            if not result:
-                print(f"Could not delete Maintenance for host: {hostname}")
-                return None
-    except urllib.error.HTTPError as e:
-        print("Error:", e)
-        sys.exit(1)
-    print("Removed existing maintenance")
-    return None
-
-
-def create_maintenance(name, since, till, hostids, timeperiods, task_desc):
-    """create new maintenance object"""
-    token = get_token()
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "maintenance.create",
-        "params": {
-            "name": name,
-            "active_since": since,
-            "active_till": till,
-            "hostids": hostids,
-            "timeperiods": timeperiods,
-        },
-        "auth": token,
-        "id": 1,
-    }
-    req = urllib.request.Request(
-        API_URL, headers={"Content-Type": "application/json-rpc"}
-    )
-    data = json.dumps(payload).encode("utf-8")
-
-    try:
-        with urllib.request.urlopen(req, data) as response:
-            body = json.load(response)
-            result = body.get("result", [])
-            if not result:
-                print(f"Could not create Maintenance for host: {hostname}")
-                return None
-    except urllib.error.HTTPError as e:
-        print("Error:", e)
-        sys.exit(1)
-    print(task_desc)
-    return None
-
-
-def start_maintenance():
-    """create maintenance object from now, replace existing maintenance object in zabbix"""
-    name = f"maintenance_{hostname}"
-    mid = get_maintenance_id(name)
-    hostid = get_host_id()
-    since = now
-    till = until
-
-    # if existing maintenance, delete it and recreate it
-    if isinstance(mid, int):
-        # remove old
-        del_maintenance(mid)
-    # fresh creation
-    create_maintenance(
-        name,
-        since,
-        till,
-        [hostid],
-        [{"timeperiod_type": 0, "period": PERIOD}],
-        f"Added a {PERIOD//3600}-hour maintenance on host: {hostname}",
-    )
-
-
-def stop_maintenance():
-    """delete maintenance object if it exists"""
-    name = f"maintenance_{hostname}"
-    mid = get_maintenance_id(name)
-    if isinstance(mid, int):
-        # remove old
-        del_maintenance(mid)
-
-
-def check_host_id():
-    """check if host exists on zabbix and check maintenance object for the host"""
-    name = f"maintenance_{hostname}"
-    if get_host_id(check=True):
-        mid = get_maintenance_id(name)
-        print(f"MaintenanceId {mid} with Host {hostname} found on {server}")
-        sys.exit(0)
-    else:
-        print(f"Host {hostname} not found on {server}")
-        sys.exit(2)
-
-
-# --- main ---
-# hostname override
-if "hostname" in config:
-    hostname = config["hostname"]
-else:
-    hostname = socket.getfqdn()
-
-if len(sys.argv) == 4:
-    hostname = sys.argv[3]
-elif len(sys.argv) == 3:
-    hostname = sys.argv[2]
-
-# period in seconds
-PERIOD = 3600
-if len(sys.argv) == 4:
-    hours_arg = int(sys.argv[2])
-    if hours_arg < 148159:
-        PERIOD = hours_arg * 3600
-    else:
-        print("Error: maximum size of a period is 148159 hours")
-        sys.exit(1)
+# set maintenance object name
+MAINTENANCE_NAME = f"maintenance_{hostname}"
 
 now = int(time.time())
 until_float = time.mktime((datetime.now() + timedelta(seconds=PERIOD)).timetuple())
 until = int(str(until_float).split(".", maxsplit=1)[0])
 
-if len(sys.argv) > 1:
-    cmd = sys.argv[1].lower()
-    if cmd == "start":
-        start_maintenance()
-    elif cmd == "stop":
-        stop_maintenance()
-    elif cmd == "check":
-        check_host_id()
-    else:
-        print("Error: action must be start, stop or check")
-        sys.exit(1)
-else:
-    print(f"Usage: {sys.argv[0]} <start|stop|check> [hours] [fqdn]")
-    sys.exit(1)
+
+# --- functions ---
+
+def handle_zabbix_error(data):
+    """Check for zabbix API error"""
+    if 'error' in data:
+        error = data['error']
+        print(f'Zabbix API Error {error['code']}: {error['message']}')
+        print(f'\t Details: {error['data']}')
+        logout_user()
+        return True # error found
+    return False # no error found
+
+def handle_request_execption(err):
+    """handle errors for requests"""
+    print('An error occured during the request:')
+    print(f'\t Type: {type(err).__name__}')
+    print(f'\t Message: {err}')
+    logout_user()
+
+def login_api_user():
+    """Login user and return auth token"""
+    headers = {'Content-Type': 'application/json-rpc'}
+    json = {
+        'jsonrpc': '2.0',
+        'method': 'user.login',
+        'params': {
+            'username': user,
+            'password': password
+        },
+        'id': 1
+    }
+    try:
+        r = requests.post(API_URL, json=json, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if handle_zabbix_error(data):
+            return None
+        token = data['result']
+        return token
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
+        handle_request_execption(err)
+
+def logout_user():
+    """Because of user.login, we have to proper logout the user to prevent too many open sessions"""
+    json = {
+        'jsonrpc': '2.0',
+        'method': 'user.logout',
+        'params': [],
+        'auth': token,
+        'id': 1
+    }
+    headers = {'Content-Type': 'application/json-rpc'}
+    try:
+        r = requests.post(API_URL, json=json, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if handle_zabbix_error(data):
+            return None
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
+        handle_request_execption(err)
+
+def get_host_id(hostname):
+    """get hostid from zabbix server"""
+    json = {
+        'jsonrpc': '2.0',
+        'method': 'host.get',
+        'params': {
+            'filter': {
+                'host': hostname
+            },
+        'output': 'extend'
+        },
+        'auth': token,
+        'id': 1
+    }
+    headers = {'Content-Type': 'application/json-rpc'}
+    try:
+        r = requests.post(API_URL, json=json, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if handle_zabbix_error(data):
+            return None
+        else:
+            result = data['result']
+            if not result:
+                print(f'Host "{hostname}" not found!')
+                logout_user()
+                sys.exit(2)
+            else:
+                host_id = result[0]['hostid']
+                print(f'Host "{hostname}" found with hostid "{host_id}".')
+                return host_id
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
+        handle_request_execption(err)
+
+def get_maintenance_id(host_id, MAINTENANCE_NAME):
+    """get maintenanceid with filter on 'MAINTENANCE_NAME'"""
+    json = {
+        'jsonrpc': '2.0',
+        'method': 'maintenance.get',
+        'params': {
+            'output': 'extend',
+            'selectGroups': 'extend',
+            'selectTimeperiods': 'extend',
+            'hostids': host_id,
+            'search': {
+                'name': MAINTENANCE_NAME
+            },
+            'startSearch': 'true'
+        },
+        'auth': token,
+        'id': 1
+    }
+    headers = {'Content-Type': 'application/json-rpc'}
+    try:
+        r = requests.post(API_URL, json=json, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if handle_zabbix_error(data):
+            return None
+        else:
+            result = data['result']
+            if not result:
+                print(f'Host "{hostname}" with hostid "{host_id}" has no maintenance defined.')
+            else:
+                maintenance_id = result[0]['maintenanceid']
+                return maintenance_id
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
+        handle_request_execption(err)
+
+def del_maintenance(maintenance_id):
+    """delete existing maintenance object"""
+    json = {
+        'jsonrpc': '2.0',
+        'method': 'maintenance.delete',
+        'params': [maintenance_id],
+        'auth': token,
+        'id': 1
+    }
+    headers = {'Content-Type': 'application/json-rpc'}
+    try:
+        r = requests.post(API_URL, json=json, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if handle_zabbix_error(data):
+            return None
+        else:
+            print(f'Successfully deleted maintenance object with maintenanceid "{maintenance_id}"')
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
+        handle_request_execption(err)
+
+def create_maintenance(maintenance_name, now, until, host_id, period):
+    """create maintenance object with period"""
+    json = {
+        'jsonrpc': '2.0',
+        'method': 'maintenance.create',
+        'params': {
+            'name': maintenance_name,
+            'active_since': now,
+            'active_till': until,
+            'hostids': [host_id],
+            'timeperiods': {
+                'period': period,
+                'timeperiod_type': 0
+            }
+        },
+        'auth': token,
+        'id': 1
+    }
+    headers = {'Content-Type': 'application/json-rpc'}
+    try:
+        r = requests.post(API_URL, json=json, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if handle_zabbix_error(data):
+            return None
+        print(f'Added a {period//3600}-hour maintenance on host "{hostname}"')
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
+        handle_request_execption(err)
+
+
+# --- main ---
+
+#token = None # define it global in login
+token = login_api_user()
+
+if args.action == "check":
+    host_id = get_host_id(hostname)
+    get_maintenance_id(host_id, MAINTENANCE_NAME)
+elif args.action == "stop":
+    host_id = get_host_id(hostname)
+    maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
+    if maintenance_id != None:
+        del_maintenance(maintenance_id)
+elif args.action == "start":
+    host_id = get_host_id(hostname)
+    maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
+    if maintenance_id != None:
+        del_maintenance(maintenance_id)
+    create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
+
+# always log user out
+logout_user()

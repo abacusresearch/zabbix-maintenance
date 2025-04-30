@@ -4,6 +4,7 @@
 Set maintenance for host
 """
 
+import argparse
 import os
 import sys
 import time
@@ -12,7 +13,6 @@ import platform
 from datetime import datetime, timedelta
 import yaml
 import requests
-import argparse
 
 
 # --- argument parser ---
@@ -123,10 +123,11 @@ def login_api_user():
         data = r.json()
         if handle_zabbix_error(data):
             return None
-        token = data['result']
-        return token
+        auth_token = data['result']
+        return auth_token
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
+        return None
 
 def logout_user():
     """Because of user.login, we have to proper logout the user to prevent too many open sessions"""
@@ -144,17 +145,19 @@ def logout_user():
         data = r.json()
         if handle_zabbix_error(data):
             return None
+        return None
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
+        return None
 
-def get_host_id(hostname):
+def get_host_id(host):
     """get hostid from zabbix server"""
     json = {
         'jsonrpc': '2.0',
         'method': 'host.get',
         'params': {
             'filter': {
-                'host': hostname
+                'host': host
             },
         'output': 'extend'
         },
@@ -168,21 +171,21 @@ def get_host_id(hostname):
         data = r.json()
         if handle_zabbix_error(data):
             return None
+        result = data['result']
+        if not result:
+            print(f'Host "{hostname}" not found!')
+            logout_user()
+            sys.exit(2)
         else:
-            result = data['result']
-            if not result:
-                print(f'Host "{hostname}" not found!')
-                logout_user()
-                sys.exit(2)
-            else:
-                host_id = result[0]['hostid']
-                print(f'Host "{hostname}" found with hostid "{host_id}".')
-                return host_id
+            hostid = result[0]['hostid']
+            print(f'Host "{hostname}" found with hostid "{hostid}".')
+            return hostid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
+        return None
 
-def get_maintenance_id(host_id, MAINTENANCE_NAME):
-    """get maintenanceid with filter on 'MAINTENANCE_NAME'"""
+def get_maintenance_id(hostid, maintenance_name):
+    """get maintenanceid with filter on 'maintenance_name'"""
     json = {
         'jsonrpc': '2.0',
         'method': 'maintenance.get',
@@ -190,9 +193,9 @@ def get_maintenance_id(host_id, MAINTENANCE_NAME):
             'output': 'extend',
             'selectGroups': 'extend',
             'selectTimeperiods': 'extend',
-            'hostids': host_id,
+            'hostids': hostid,
             'search': {
-                'name': MAINTENANCE_NAME
+                'name': maintenance_name
             },
             'startSearch': 'true'
         },
@@ -206,22 +209,22 @@ def get_maintenance_id(host_id, MAINTENANCE_NAME):
         data = r.json()
         if handle_zabbix_error(data):
             return None
-        else:
-            result = data['result']
-            if not result:
-                print(f'Host "{hostname}" with hostid "{host_id}" has no maintenance defined.')
-            else:
-                maintenance_id = result[0]['maintenanceid']
-                return maintenance_id
+        result = data['result']
+        if not result:
+            print(f'Host "{hostname}" with hostid "{hostid}" has no maintenance defined.')
+            return None
+        maintenanceid = result[0]['maintenanceid']
+        return maintenanceid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
+        return None
 
-def del_maintenance(maintenance_id):
+def del_maintenance(maintenanceid):
     """delete existing maintenance object"""
     json = {
         'jsonrpc': '2.0',
         'method': 'maintenance.delete',
-        'params': [maintenance_id],
+        'params': [maintenanceid],
         'auth': token,
         'id': 1
     }
@@ -232,23 +235,24 @@ def del_maintenance(maintenance_id):
         data = r.json()
         if handle_zabbix_error(data):
             return None
-        else:
-            print(f'Successfully deleted maintenance object with maintenanceid "{maintenance_id}"')
+        print(f'Successfully deleted maintenance object with maintenanceid "{maintenanceid}"')
+        return True
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
+        return None
 
-def create_maintenance(maintenance_name, now, until, host_id, period):
+def create_maintenance(maintenance_name, since, till, hostid, timeperiod):
     """create maintenance object with period"""
     json = {
         'jsonrpc': '2.0',
         'method': 'maintenance.create',
         'params': {
             'name': maintenance_name,
-            'active_since': now,
-            'active_till': until,
-            'hostids': [host_id],
+            'active_since': since,
+            'active_till': till,
+            'hostids': [hostid],
             'timeperiods': {
-                'period': period,
+                'period': timeperiod,
                 'timeperiod_type': 0
             }
         },
@@ -262,9 +266,11 @@ def create_maintenance(maintenance_name, now, until, host_id, period):
         data = r.json()
         if handle_zabbix_error(data):
             return None
-        print(f'Added a {period//3600}-hour maintenance on host "{hostname}"')
+        print(f'Added a {timeperiod//3600}-hour maintenance on host "{hostname}"')
+        return True
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
+        return None
 
 
 # --- main ---
@@ -278,12 +284,12 @@ if args.action == "check":
 elif args.action == "stop":
     host_id = get_host_id(hostname)
     maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
-    if maintenance_id != None:
+    if maintenance_id is not None:
         del_maintenance(maintenance_id)
 elif args.action == "start":
     host_id = get_host_id(hostname)
     maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
-    if maintenance_id != None:
+    if maintenance_id is not None:
         del_maintenance(maintenance_id)
     create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
 

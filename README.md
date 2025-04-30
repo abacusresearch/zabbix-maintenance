@@ -54,9 +54,9 @@ python zabbix_maintenance.py stop
 python zabbix_maintenance.py stop 3 zabbix.example.com
 ```
 
-### Check if host exist on zabbix
+### Check if a maintenance for host exist on zabbix
 
 ```
 python zabbix_maintenance.py check
-python zabbix_maintenance.py check 3 zabbix.example.com
+python zabbix_maintenance.py check zabbix.example.com
 ```

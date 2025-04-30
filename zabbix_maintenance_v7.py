@@ -98,12 +98,14 @@ def handle_zabbix_error(data):
         return True # error found
     return False # no error found
 
+
 def handle_request_execption(err):
     """handle errors for requests"""
     print('An error occured during the request:')
     print(f'\t Type: {type(err).__name__}')
     print(f'\t Message: {err}')
     logout_user()
+
 
 def login_api_user():
     """Login user and return auth token"""
@@ -129,6 +131,7 @@ def login_api_user():
         handle_request_execption(err)
         return None
 
+
 def logout_user():
     """Because of user.login, we have to proper logout the user to prevent too many open sessions"""
     json = {
@@ -149,6 +152,7 @@ def logout_user():
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
         return None
+
 
 def get_host_id(host):
     """get hostid from zabbix server"""
@@ -183,6 +187,7 @@ def get_host_id(host):
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
         return None
+
 
 def get_maintenance_id(hostid, maintenance_name):
     """get maintenanceid with filter on 'maintenance_name'"""
@@ -219,6 +224,7 @@ def get_maintenance_id(hostid, maintenance_name):
         handle_request_execption(err)
         return None
 
+
 def del_maintenance(maintenanceid):
     """delete existing maintenance object"""
     json = {
@@ -240,6 +246,7 @@ def del_maintenance(maintenanceid):
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
         return None
+
 
 def create_maintenance(maintenance_name, since, till, hostid, timeperiod):
     """create maintenance object with period"""

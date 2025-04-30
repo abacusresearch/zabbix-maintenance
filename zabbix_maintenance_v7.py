@@ -48,8 +48,15 @@ else:
     CONFIG_FILE = "zabbix_maintenance.yml"
 
 # load YAML
-with open(CONFIG_FILE, "r", encoding="utf-8") as ymlfile:
-    config = yaml.load(ymlfile, Loader=yaml.SafeLoader)
+try:
+    with open(CONFIG_FILE, "r", encoding="utf-8") as ymlfile:
+        config = yaml.load(ymlfile, Loader=yaml.SafeLoader)
+except FileNotFoundError:
+    print(f'File "{CONFIG_FILE}" not found!')
+    sys.exit(2)
+except:
+    print(f'Failed to open file "{CONFIG_FILE}".')
+    sys.exit(2)
 
 # get hostname from 'CONFIG_FILE'
 if "hostname" in config:
@@ -219,6 +226,7 @@ def get_maintenance_id(hostid, maintenance_name):
             print(f'Host "{hostname}" with hostid "{hostid}" has no maintenance defined.')
             return None
         maintenanceid = result[0]['maintenanceid']
+        print(f'Maintenance "{maintenance_name}" with maintenanceid "{maintenanceid}" found for host "{hostname}".')
         return maintenanceid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
@@ -282,7 +290,7 @@ def create_maintenance(maintenance_name, since, till, hostid, timeperiod):
 
 # --- main ---
 
-#token = None # define it global in login
+# create auth token
 token = login_api_user()
 
 if args.action == "check":

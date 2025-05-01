@@ -184,7 +184,6 @@ def get_host_id(host):
             sys.exit(2)
         else:
             hostid = result[0]['hostid']
-            print(f'Host "{hostname}" found with hostid "{hostid}".')
             return hostid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)

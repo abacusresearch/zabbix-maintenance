@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-"""
-Set maintenance for host
-"""
+"""Set maintenance for host"""
 
 import argparse
 import os
@@ -54,9 +52,6 @@ try:
 except FileNotFoundError:
     print(f'File "{CONFIG_FILE}" not found!')
     sys.exit(2)
-except:
-    print(f'Failed to open file "{CONFIG_FILE}".')
-    sys.exit(2)
 
 # get hostname from 'CONFIG_FILE'
 if "hostname" in config:
@@ -99,8 +94,8 @@ def handle_zabbix_error(data):
     """Check for zabbix API error"""
     if 'error' in data:
         error = data['error']
-        print(f'Zabbix API Error {error['code']}: {error['message']}')
-        print(f'\t Details: {error['data']}')
+        print(f"Zabbix API Error {error['code']}: {error['message']}")
+        print(f"\t Details: {error['data']}")
         logout_user()
         return True # error found
     return False # no error found
@@ -189,7 +184,6 @@ def get_host_id(host):
             sys.exit(2)
         else:
             hostid = result[0]['hostid']
-            print(f'Host "{hostname}" found with hostid "{hostid}".')
             return hostid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)

@@ -14,7 +14,7 @@ import requests
 
 
 # --- argument parser ---
-parser = argparse.ArgumentParser(description='Tool to start,' \
+parser = argparse.ArgumentParser(description='Tool to start, ' \
 'stop or check maintenance for a specific host on zabbix')
 parser.add_argument('action', choices=['start', 'stop', 'check'], help='Action to perform')
 parser.add_argument('--time-period', nargs='?', type=int, default=None, help='' \

@@ -17,11 +17,11 @@ import requests
 parser = argparse.ArgumentParser(description='Tool to start, ' \
 'stop or check maintenance for a specific host on zabbix')
 parser.add_argument('action', choices=['start', 'stop', 'check'], help='Action to perform')
-parser.add_argument('--time-period', nargs='?', type=float, default=None, help='' \
+parser.add_argument('--time-period', '-t', nargs='?', type=float, default=None, help='' \
 'Number of hours for maintenance (only for start/stop). Maximum is 148159 hours.')
-parser.add_argument('--target-host', nargs='?', type=str, default=None, help='' \
+parser.add_argument('--target-host', '-s', nargs='?', type=str, default=None, help='' \
 'Target host to set or check maintenance')
-parser.add_argument('--config-file', nargs='?', type=str, default=None, help='' \
+parser.add_argument('--config-file', '-c', nargs='?', type=str, default=None, help='' \
 r'Path of the config file (default of Windows "C:\ProgramData\zabbix\zabbix_maintenance.yml"' \
 ', on Linux "/etc/zabbix/zabbix_maintenance.yml")')
 args = parser.parse_args()

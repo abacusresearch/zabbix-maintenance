@@ -139,7 +139,7 @@ def start_maintenance():
         print(("Error: " + str(ue)))
         sys.exit(1)
     else:
-        print("Added a %s:%02s hours maintenance on host: %s" % (period // 3600, period%3600//60, hostname ))
+        print("Added a %i:%02i hours maintenance on host: %s" % (period // 3600, period%3600//60, hostname ))
         sys.exit(0)
 
 

@@ -17,7 +17,7 @@ import requests
 parser = argparse.ArgumentParser(description='Tool to start, ' \
 'stop or check maintenance for a specific host on zabbix')
 parser.add_argument('action', choices=['start', 'stop', 'check'], help='Action to perform')
-parser.add_argument('--time-period', nargs='?', type=int, default=None, help='' \
+parser.add_argument('--time-period', nargs='?', type=float, default=None, help='' \
 'Number of hours for maintenance (only for start/stop). Maximum is 148159 hours.')
 parser.add_argument('--target-host', nargs='?', type=str, default=None, help='' \
 'Target host to set or check maintenance')
@@ -70,7 +70,7 @@ else:
 
 # max hours is 148159
 if HOURS_ARG < 148159:
-    PERIOD = HOURS_ARG * 3600
+    PERIOD = int(HOURS_ARG * 3600)
 else:
     print("Error: maximum size of a period is 148159 hours")
     sys.exit(1)
@@ -85,7 +85,7 @@ MAINTENANCE_NAME = f"maintenance_{hostname}"
 
 now = int(time.time())
 until_float = time.mktime((datetime.now() + timedelta(seconds=PERIOD)).timetuple())
-until = int(str(until_float).split(".", maxsplit=1)[0])
+until = int(until_float)
 
 
 # --- functions ---

@@ -274,7 +274,7 @@ def create_maintenance(maintenance_name, since, till, hostid, timeperiod):
         data = r.json()
         if handle_zabbix_error(data):
             return None
-        print(f'Added a {timeperiod//3600}-hour maintenance on host "{hostname}"')
+        print(f'Added a {timeperiod//3600}:{timeperiod%3600//60} hour maintenance on host "{hostname}"')
         return True
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)

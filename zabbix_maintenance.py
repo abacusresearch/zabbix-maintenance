@@ -197,10 +197,10 @@ else:
 if sys.argv[3:]:
     hostname = sys.argv[3]
 
-period = int('3600')
+period = 3600
 if sys.argv[2:]:
-    if int(sys.argv[2]) < 148159:
-        period = int(sys.argv[2] * int('3600'))
+    if float(sys.argv[2]) < 148159:
+        period = int(float(sys.argv[2]) * 3600)
     else:
         print("Error: maximum size of a period is 148159 hours")
         sys.exit(1)

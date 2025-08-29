@@ -84,8 +84,7 @@ API_URL = f"https://{server}/api_jsonrpc.php"
 MAINTENANCE_NAME = f"maintenance_{hostname}"
 
 now = int(time.time())
-until_float = time.mktime((datetime.now() + timedelta(seconds=PERIOD)).timetuple())
-until = int(until_float)
+until = int(time.mktime((datetime.now() + timedelta(seconds=PERIOD)).timetuple()))
 
 
 # --- functions ---

@@ -57,9 +57,7 @@ parser.add_argument(
 parser.add_argument(
     "--delete-all",
     "-rm",
-    nargs="?",
-    type=bool,
-    default=False,
+    action="store_true",
     help="Delete all maintenance items. Works only for 'stop' action."
 )
 args = parser.parse_args()

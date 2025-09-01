@@ -58,6 +58,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--delete-all",
+    "-rm",
     nargs="?",
     type=bool,
     default=False,
@@ -236,13 +237,37 @@ def get_maintenance_id(hostid, maintenance_name):
             "selectTimeperiods": "extend",
             "hostids": hostid,
             "search": {"name": maintenance_name},
-            "startSearch": "true",
             # "startSearch": "true" if args.keyword is None else "false",
             # "searchWildcardsEnabled": "false" if args.keyword is None else "true",
         },
         "auth": token,
         "id": 1,
     }
+    print(json)
+    match args.keyword:
+        case None:
+            print(f'args.keyword is None')
+            json["params"]["startSearch"] = "true"
+        case "":
+            print(f'args.keyword == ""')
+            json["params"]["startSearch"] = "false"
+            json["params"]["searchWildcardsEnabled"] = "false"
+        case _:
+            print(f'args.keyword is not None')
+            json["params"]["startSearch"] = "false"
+            json["params"]["searchWildcardsEnabled"] = "false"
+    
+    # if args.keyword is None:
+    #     print(f'args.keyword is None')
+    #     json["params"]["startSearch"] = "true"
+    #     json["params"]["searchWildcardsEnabled"] = "false"
+    # elif args.keyword == "":
+    #     print(f'args.keyword == ""')
+    #     json["params"]["startSearch"] = "false"
+    # elif args.keyword is not None:
+    #     print(f'args.keyword is not None')
+    #     json["params"]["startSearch"] = "false"
+    #     json["params"]["searchWildcardsEnabled"] = "false"
     print(json)
     headers = {"Content-Type": "application/json-rpc"}
     try:

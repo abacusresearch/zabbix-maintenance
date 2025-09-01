@@ -228,6 +228,9 @@ def get_host_id(host):
 
 def get_maintenance_id(hostid, maintenance_name):
     """get maintenanceid with filter on 'maintenance_name'"""
+    # If keyword is None, then show all maintenance items for specified target host
+    # If keyword is an empty sting (like 'check -k ""'), then show only the item which matches with hostname in it's name
+    # If keyword is provided (not empty), then search for exact matching name
     json = {
         "jsonrpc": "2.0",
         "method": "maintenance.get",
@@ -237,38 +240,14 @@ def get_maintenance_id(hostid, maintenance_name):
             "selectTimeperiods": "extend",
             "hostids": hostid,
             "search": {"name": maintenance_name},
-            # "startSearch": "true" if args.keyword is None else "false",
-            # "searchWildcardsEnabled": "false" if args.keyword is None else "true",
+            # "startSearch": True if args.keyword is None else False,
+            "startSearch": args.keyword is None,
+            # "searchWildcardsEnabled": False if args.keyword is None else True,
+            "searchWildcardsEnabled": args.keyword is not None,
         },
         "auth": token,
         "id": 1,
     }
-    print(json)
-    match args.keyword:
-        case None:
-            print(f'args.keyword is None')
-            json["params"]["startSearch"] = "true"
-        case "":
-            print(f'args.keyword == ""')
-            json["params"]["startSearch"] = "false"
-            json["params"]["searchWildcardsEnabled"] = "false"
-        case _:
-            print(f'args.keyword is not None')
-            json["params"]["startSearch"] = "false"
-            json["params"]["searchWildcardsEnabled"] = "false"
-    
-    # if args.keyword is None:
-    #     print(f'args.keyword is None')
-    #     json["params"]["startSearch"] = "true"
-    #     json["params"]["searchWildcardsEnabled"] = "false"
-    # elif args.keyword == "":
-    #     print(f'args.keyword == ""')
-    #     json["params"]["startSearch"] = "false"
-    # elif args.keyword is not None:
-    #     print(f'args.keyword is not None')
-    #     json["params"]["startSearch"] = "false"
-    #     json["params"]["searchWildcardsEnabled"] = "false"
-    print(json)
     headers = {"Content-Type": "application/json-rpc"}
     try:
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
@@ -286,9 +265,9 @@ def get_maintenance_id(hostid, maintenance_name):
         # maintenanceid = result[0]['maintenanceid']
         # collect all "maintenanceid", "name" results and create dict
         maintenanceid = {m["maintenanceid"]: m["name"] for m in result}
-        print(f"Follow maintenance item(s) was found:")
-        for mid, mname in maintenanceid.items():
-            print(f"{mid}: {mname}")
+        print("Follow maintenance item(s) was found:")
+        for maintenanceids, maintenancename in maintenanceid.items():
+            print(f"{maintenanceids}: {maintenancename}")
         # print(f'Maintenance "{maintenance_name}" with maintenanceid "{maintenanceid}" found for host "{hostname}".')
         return maintenanceid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
@@ -357,40 +336,40 @@ def create_maintenance(maintenance_name, since, till, hostid, timeperiod):
 # create auth token
 token = login_api_user()
 
-if args.action == "check":
-    host_id = get_host_id(hostname)
-    get_maintenance_id(host_id, MAINTENANCE_NAME)
-elif args.action == "stop":
-    host_id = get_host_id(hostname)
-    maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
-    if maintenance_id is None:
-        print(f"Nothing to do.")
-    elif args.delete_all:
-        for mid, mname in maintenance_id.items():
-            del_maintenance(mid)
-    elif len(maintenance_id) == 1:
-        for mid, mname in maintenance_id.items():
-            del_maintenance(mid)
-    else:
-        print(
-            f'Multiple maintenance items was found, please use "--keyword" or "--delete-all" to specify your request.\n'
-        )
-        sys.exit(1)
-elif args.action == "start":
-    host_id = get_host_id(hostname)
-    maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
-    if maintenance_id is None:
-        create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
-    elif len(maintenance_id) == 1:
-        for mid, mname in maintenance_id.items():
-            del_maintenance(mid)
-        create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
-    else:
-        print(
-            f'Multiple maintenance items was found, please use "--keyword" to specify your request.\n'
-        )
-        parser.print_help()
-        sys.exit(1)
+match args.action:
+    case "check":
+        host_id = get_host_id(hostname)
+        get_maintenance_id(host_id, MAINTENANCE_NAME)
+    case "stop":
+        host_id = get_host_id(hostname)
+        maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
+        if maintenance_id is None:
+            print("Nothing to do.")
+        elif len(maintenance_id) == 1:
+            for mid, mname in maintenance_id.items():
+                del_maintenance(mid)
+        elif args.delete_all:
+            for mid, mname in maintenance_id.items():
+                del_maintenance(mid)
+        else:
+            print(
+                'Multiple maintenance items was found, please use "--keyword, -k" or "--delete-all, -rm" to specify your request.\n'
+            )
+            sys.exit(1)
+    case "start":
+        host_id = get_host_id(hostname)
+        maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
+        if maintenance_id is None:
+            create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
+        elif len(maintenance_id) == 1:
+            for mid, mname in maintenance_id.items():
+                del_maintenance(mid)
+            create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
+        else:
+            print(
+                'Multiple maintenance items was found, please use "--keyword, -k" to specify your request.\n'
+            )
+            sys.exit(1)
 
 # always log user out
 logout_user()

@@ -43,8 +43,8 @@ If no fqdn specified, the local host name is used
 
 ```
 python zabbix_maintenance.py start
-python zabbix_maintenance.py start 3
-python zabbix_maintenance.py start 3 zabbix.example.com
+python zabbix_maintenance.py start 0.25
+python zabbix_maintenance.py start 0.25 zabbix.example.com
 ```
 
 ### Remove a maintenance period

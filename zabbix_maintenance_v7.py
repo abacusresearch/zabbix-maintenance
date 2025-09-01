@@ -27,8 +27,7 @@ parser.add_argument(
     nargs="?",
     type=float,
     default=None,
-    help=""
-    "Number of hours for maintenance (only for start/stop). Maximum is 148159 hours.",
+    help="Number of hours for maintenance (only for start/stop). Maximum is 148159 hours."
 )
 parser.add_argument(
     "--target-host",
@@ -36,7 +35,7 @@ parser.add_argument(
     nargs="?",
     type=str,
     default=None,
-    help="" "Target host to set or check maintenance",
+    help="Target host to set or check maintenance"
 )
 parser.add_argument(
     "--config-file",
@@ -44,9 +43,8 @@ parser.add_argument(
     nargs="?",
     type=str,
     default=None,
-    help=""
-    r'Path of the config file (default of Windows "C:\ProgramData\zabbix\zabbix_maintenance.yml"'
-    ', on Linux "/etc/zabbix/zabbix_maintenance.yml")',
+    help=r'Path of the config file (default of Windows "C:\ProgramData\zabbix\zabbix_maintenance.yml"'
+    ', on Linux "/etc/zabbix/zabbix_maintenance.yml")'
 )
 parser.add_argument(
     "--keyword",
@@ -54,7 +52,7 @@ parser.add_argument(
     nargs="?",
     type=str,
     default=None,
-    help="" "Add a keyword for the maintenance item.",
+    help="Add a keyword for the maintenance item."
 )
 parser.add_argument(
     "--delete-all",
@@ -62,7 +60,7 @@ parser.add_argument(
     nargs="?",
     type=bool,
     default=False,
-    help="" "Delete all maintenance items. Works only for 'stop' action.",
+    help="Delete all maintenance items. Works only for 'stop' action."
 )
 args = parser.parse_args()
 

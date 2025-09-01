@@ -229,7 +229,8 @@ def get_host_id(host):
 def get_maintenance_id(hostid, maintenance_name):
     """get maintenanceid with filter on 'maintenance_name'"""
     # If keyword is None, then show all maintenance items for specified target host
-    # If keyword is an empty sting (like 'check -k ""'), then show only the item which matches with hostname in it's name
+    # If keyword is an empty sting (like 'check -k ""'), then show only the item which
+    # matches with hostname in it's name
     # If keyword is provided (not empty), then search for exact matching name
     json = {
         "jsonrpc": "2.0",
@@ -268,7 +269,6 @@ def get_maintenance_id(hostid, maintenance_name):
         print("Follow maintenance item(s) was found:")
         for maintenanceids, maintenancename in maintenanceid.items():
             print(f"{maintenanceids}: {maintenancename}")
-        # print(f'Maintenance "{maintenance_name}" with maintenanceid "{maintenanceid}" found for host "{hostname}".')
         return maintenanceid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
         handle_request_execption(err)
@@ -353,7 +353,8 @@ match args.action:
                 del_maintenance(mid)
         else:
             print(
-                'Multiple maintenance items was found, please use "--keyword, -k" or "--delete-all, -rm" to specify your request.\n'
+                'Multiple maintenance items was found, '
+                'please use "--keyword, -k" or "--delete-all, -rm" to specify your request.\n'
             )
             sys.exit(1)
     case "start":
@@ -367,7 +368,8 @@ match args.action:
             create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
         else:
             print(
-                'Multiple maintenance items was found, please use "--keyword, -k" to specify your request.\n'
+                'Multiple maintenance items was found, '
+                'please use "--keyword, -k" to specify your request.\n'
             )
             sys.exit(1)
 

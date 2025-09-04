@@ -27,7 +27,7 @@ parser.add_argument(
     nargs="?",
     type=float,
     default=None,
-    help="Number of hours for maintenance (only for start/stop). Maximum is 148159 hours."
+    help="Number of hours for maintenance (only for start/stop). Maximum is 148159 hours.",
 )
 parser.add_argument(
     "--target-host",
@@ -35,7 +35,7 @@ parser.add_argument(
     nargs="?",
     type=str,
     default=None,
-    help="Target host to set or check maintenance"
+    help="Target host to set or check maintenance",
 )
 parser.add_argument(
     "--config-file",
@@ -44,7 +44,7 @@ parser.add_argument(
     type=str,
     default=None,
     help=r'Path of the config file (default of Windows "C:\ProgramData\zabbix\zabbix_maintenance.yml"'
-    ', on Linux "/etc/zabbix/zabbix_maintenance.yml")'
+    ', on Linux "/etc/zabbix/zabbix_maintenance.yml")',
 )
 parser.add_argument(
     "--keyword",
@@ -52,13 +52,13 @@ parser.add_argument(
     nargs="?",
     type=str,
     default=None,
-    help="Add a keyword for the maintenance item."
+    help="Add a keyword for the maintenance item.",
 )
 parser.add_argument(
     "--delete-all",
     "-rm",
     action="store_true",
-    help="Delete all maintenance items. Works only for 'stop' action."
+    help="Delete all maintenance items. Works only for 'stop' action.",
 )
 parser.add_argument(
     "--id",
@@ -66,7 +66,7 @@ parser.add_argument(
     nargs="?",
     type=int,
     default=None,
-    help='Use this argument to delete maintenance object with it\'s id (see "check" action to list all found ids per host).'
+    help='Use this argument to delete maintenance object with it\'s id (see "check" action to list all found ids per host).',
 )
 args = parser.parse_args()
 
@@ -239,7 +239,7 @@ def get_maintenance_id_check(id):
             "output": "extend",
             "selectGroups": "extend",
             "selectTimeperiods": "extend",
-            "maintenanceids": id
+            "maintenanceids": id,
         },
         "auth": token,
         "id": 1,
@@ -380,7 +380,7 @@ match args.action:
             if get_maintenance_id_check(args.id) is True:
                 del_maintenance(args.id)
             else:
-                print(f'Maintenance with id {args.id} was not found!.')
+                print(f"Maintenance with id {args.id} was not found!.")
                 logout_user()
                 sys.exit(2)
         else:
@@ -397,7 +397,7 @@ match args.action:
                         del_maintenance(mid)
                 case _:
                     print(
-                        'Multiple maintenance items was found, '
+                        "Multiple maintenance items was found, "
                         'please use "--keyword, -k" or "--delete-all, -rm" to specify your request.\n'
                     )
                     logout_user()
@@ -413,7 +413,7 @@ match args.action:
             create_maintenance(MAINTENANCE_NAME, now, until, host_id, PERIOD)
         else:
             print(
-                'Multiple maintenance items was found, '
+                "Multiple maintenance items was found, "
                 'please use "--keyword, -k" to specify your request.\n'
             )
             logout_user()

@@ -60,6 +60,14 @@ parser.add_argument(
     action="store_true",
     help="Delete all maintenance items. Works only for 'stop' action."
 )
+parser.add_argument(
+    "--id",
+    "-i",
+    nargs="?",
+    type=int,
+    default=None,
+    help='Use this argument to delete maintenance object with it\'s id (see "check" action to list all found ids per host).'
+)
 args = parser.parse_args()
 
 
@@ -222,6 +230,37 @@ def get_host_id(host):
         return None
 
 
+def get_maintenance_id_check(id):
+    """only to check if the provided maintenance id exists or not"""
+    json = {
+        "jsonrpc": "2.0",
+        "method": "maintenance.get",
+        "params": {
+            "output": "extend",
+            "selectGroups": "extend",
+            "selectTimeperiods": "extend",
+            "maintenanceids": id
+        },
+        "auth": token,
+        "id": 1,
+    }
+    headers = {"Content-Type": "application/json-rpc"}
+    try:
+        r = requests.post(API_URL, json=json, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        if handle_zabbix_error(data):
+            return None
+        result = data["result"]
+        if not result:
+            return False
+        else:
+            return True
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
+        handle_request_execption(err)
+        return None
+
+
 def get_maintenance_id(hostid, maintenance_name):
     """get maintenanceid with filter on 'maintenance_name'"""
     # If keyword is None, then show all maintenance items for specified target host
@@ -337,22 +376,32 @@ match args.action:
         host_id = get_host_id(hostname)
         get_maintenance_id(host_id, MAINTENANCE_NAME)
     case "stop":
-        host_id = get_host_id(hostname)
-        maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
-        if maintenance_id is None:
-            print("Nothing to do.")
-        elif len(maintenance_id) == 1:
-            for mid, mname in maintenance_id.items():
-                del_maintenance(mid)
-        elif args.delete_all:
-            for mid, mname in maintenance_id.items():
-                del_maintenance(mid)
+        if args.id is not None:
+            if get_maintenance_id_check(args.id) is True:
+                del_maintenance(args.id)
+            else:
+                print(f'Maintenance with id {args.id} was not found!.')
+                logout_user()
+                sys.exit(2)
         else:
-            print(
-                'Multiple maintenance items was found, '
-                'please use "--keyword, -k" or "--delete-all, -rm" to specify your request.\n'
-            )
-            sys.exit(1)
+            host_id = get_host_id(hostname)
+            maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
+            match maintenance_id:
+                case None:
+                    print("Nothing to do.")
+                case _ if len(maintenance_id) == 1:
+                    for mid, mname in maintenance_id.items():
+                        del_maintenance(mid)
+                case args.delete_all:
+                    for mid, mname in maintenance_id.items():
+                        del_maintenance(mid)
+                case _:
+                    print(
+                        'Multiple maintenance items was found, '
+                        'please use "--keyword, -k" or "--delete-all, -rm" to specify your request.\n'
+                    )
+                    logout_user()
+                    sys.exit(1)
     case "start":
         host_id = get_host_id(hostname)
         maintenance_id = get_maintenance_id(host_id, MAINTENANCE_NAME)
@@ -367,6 +416,7 @@ match args.action:
                 'Multiple maintenance items was found, '
                 'please use "--keyword, -k" to specify your request.\n'
             )
+            logout_user()
             sys.exit(1)
 
 # always log user out

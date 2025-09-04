@@ -392,7 +392,7 @@ match args.action:
                 case _ if len(maintenance_id) == 1:
                     for mid, mname in maintenance_id.items():
                         del_maintenance(mid)
-                case args.delete_all:
+                case _ if args.delete_all:
                     for mid, mname in maintenance_id.items():
                         del_maintenance(mid)
                 case _:

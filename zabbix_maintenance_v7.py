@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 import yaml
 import requests
 
-
 # --- argument parser ---
 parser = argparse.ArgumentParser(
     description="Tool to start, "

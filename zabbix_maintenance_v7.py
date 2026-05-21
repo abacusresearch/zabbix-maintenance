@@ -137,12 +137,16 @@ until = int(time.mktime((datetime.now() + timedelta(seconds=PERIOD)).timetuple()
 # --- functions ---
 
 
-def handle_zabbix_error(data):
+def handle_zabbix_error(data, critical=False):
     """Check for zabbix API error"""
     if "error" in data:
         error = data["error"]
         print(f"Zabbix API Error {error['code']}: {error['message']}")
         print(f"\t Details: {error['data']}")
+
+        if critical:
+            logout_user(called_from_error=True)
+            sys.exit(1)
         logout_user()
         return True  # error found
     return False  # no error found
@@ -153,7 +157,7 @@ def handle_request_exception(err):
     print("An error occured during the request:")
     print(f"\t Type: {type(err).__name__}")
     print(f"\t Message: {err}")
-    logout_user()
+    sys.exit(1)
 
 
 def login_api_user():
@@ -169,7 +173,7 @@ def login_api_user():
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
         r.raise_for_status()
         data = r.json()
-        if handle_zabbix_error(data):
+        if handle_zabbix_error(data, critical=True):
             return None
         auth_token = data["result"]
         return auth_token
@@ -178,7 +182,7 @@ def login_api_user():
         return None
 
 
-def logout_user():
+def logout_user(called_from_error=False):
     """Because of user.login, we have to proper logout the user to prevent too many open sessions"""
     json = {
         "jsonrpc": "2.0",
@@ -192,7 +196,11 @@ def logout_user():
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
         r.raise_for_status()
         data = r.json()
-        if handle_zabbix_error(data):
+
+        if "error" in data and called_from_error:
+            return None
+
+        if handle_zabbix_error(data, critical=False):
             return None
         return None
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
@@ -214,7 +222,7 @@ def get_host_id(host):
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
         r.raise_for_status()
         data = r.json()
-        if handle_zabbix_error(data):
+        if handle_zabbix_error(data, critical=True):
             return None
         result = data["result"]
         if not result:
@@ -248,7 +256,7 @@ def get_maintenance_id_check(id):
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
         r.raise_for_status()
         data = r.json()
-        if handle_zabbix_error(data):
+        if handle_zabbix_error(data, critical=True):
             return None
         result = data["result"]
         if not result:
@@ -288,7 +296,7 @@ def get_maintenance_id(hostid, maintenance_name):
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
         r.raise_for_status()
         data = r.json()
-        if handle_zabbix_error(data):
+        if handle_zabbix_error(data, critical=True):
             return None
         result = data["result"]
         if not result:
@@ -323,7 +331,7 @@ def del_maintenance(maintenanceid):
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
         r.raise_for_status()
         data = r.json()
-        if handle_zabbix_error(data):
+        if handle_zabbix_error(data, critical=True):
             return None
         print(
             f'Successfully deleted maintenance object with maintenanceid "{maintenanceid}"'
@@ -354,7 +362,7 @@ def create_maintenance(maintenance_name, since, till, hostid, timeperiod):
         r = requests.post(API_URL, json=json, headers=headers, timeout=5)
         r.raise_for_status()
         data = r.json()
-        if handle_zabbix_error(data):
+        if handle_zabbix_error(data, critical=True):
             return None
         print(
             f'Added a {timeperiod//3600}:{timeperiod%3600//60:02n} hour maintenance on host "{hostname}"'

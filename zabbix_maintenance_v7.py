@@ -149,7 +149,7 @@ def handle_zabbix_error(data):
     return False  # no error found
 
 
-def handle_request_execption(err):
+def handle_request_exception(err):
     """handle errors for requests"""
     print("An error occured during the request:")
     print(f"\t Type: {type(err).__name__}")
@@ -175,7 +175,7 @@ def login_api_user():
         auth_token = data["result"]
         return auth_token
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        handle_request_execption(err)
+        handle_request_exception(err)
         return None
 
 
@@ -197,7 +197,7 @@ def logout_user():
             return None
         return None
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        handle_request_execption(err)
+        handle_request_exception(err)
         return None
 
 
@@ -226,7 +226,7 @@ def get_host_id(host):
             hostid = result[0]["hostid"]
             return hostid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        handle_request_execption(err)
+        handle_request_exception(err)
         return None
 
 
@@ -257,7 +257,7 @@ def get_maintenance_id_check(id):
         else:
             return True
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        handle_request_execption(err)
+        handle_request_exception(err)
         return None
 
 
@@ -306,7 +306,7 @@ def get_maintenance_id(hostid, maintenance_name):
             print(f"{maintenanceids}: {maintenancename}")
         return maintenanceid
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        handle_request_execption(err)
+        handle_request_exception(err)
         return None
 
 
@@ -331,7 +331,7 @@ def del_maintenance(maintenanceid):
         )
         return True
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        handle_request_execption(err)
+        handle_request_exception(err)
         return None
 
 
@@ -362,7 +362,7 @@ def create_maintenance(maintenance_name, since, till, hostid, timeperiod):
         )
         return True
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        handle_request_execption(err)
+        handle_request_exception(err)
         return None
 
 

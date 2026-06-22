@@ -97,10 +97,10 @@ except FileNotFoundError:
     sys.exit(2)
 
 # get hostname from 'CONFIG_FILE'
-if "hostname" in config:
-    hostname = config["hostname"]
-elif args.target_host is not None:
+if args.target_host is not None:
     hostname = args.target_host
+elif "hostname" in config:
+     hostname = config["hostname"]
 else:
     hostname = socket.getfqdn()
 
